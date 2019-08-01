@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
+      integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ"
+      crossorigin="anonymous"
+    />
+    <title>MyChat</title>
+    <style>
+      #messages {
+        height: 350px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 offset-md-3 col-sm-12">
+          <h1 class="text-center">
+            <img
+              id="photo"
+              height="80"
+              width="80"
+              src="file:///C:/Users/msmel/%D0%A0%D0%B0%D0%B1%D0%BE%D1%87%D0%B8%D0%B9%20%D1%81%D1%82%D0%BE%D0%BB/mongochat-master/icons/ironman.png"
+            />
+            MyChat
+            <input
+              id="newPhoto"
+              type="file"
+              class="btn btn-good"
+              name="newPhoto"
+              accept="image/png"
+            />
+            <button id="changePhoto" type="submit" class="btn btn-good">
+              Изменить
+            </button>
+          </h1>
+          <div id="status"></div>
+          <div id="chat">
+            <input
+              type="text"
+              id="username"
+              class="form-control"
+              placeholder="Enter name..."
+            />
+            <br />
+            <div class="card">
+              <div id="messages" class="card-block"></div>
+            </div>
+            <br />
+            <textarea
+              id="textarea"
+              class="form-control"
+              placeholder="Enter message..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+
+    <script>
+      (function() {
+        var element = function(id) {
+          return document.getElementById(id);
+        };
+
+        var status = element("status");
+        var messages = element("messages");
+        var textarea = element("textarea");
+        var username = element("username");
+        var changePhoto = element("changePhoto");
+        var newPhoto = element("newPhoto");
+        var photo = element("photo");
+
+        var statusDefault = status.textContent;
+        var setStatus = function(s) {
+          status.textContent = s;
+
+          if (s !== statusDefault) {
+            var delay = setTimeout(function() {
+              setStatus(statusDefault);
+            }, 4000);
+          }
+        };
+
+        var socket = io.connect("http://127.0.0.1:4000");
+        if (socket !== undefined) {
+          console.log("Connected to socket...");
+
+          socket.on("output", function(data) {
+            //console.log(data);
+            if (data.length) {
+              for (var i = 0; i < data.length; i++) {
+                var message = document.createElement("div");
+                message.setAttribute("class", "chat-message");
+                message.textContent = data[i].name + ": " + data[i].message;
+                messages.appendChild(message);
+                messages.insertBefore(message, messages.lastChild);
+              }
+            }
+          });
+
+          socket.on("status", function(data) {
+            setStatus(typeof data === "object" ? data.message : data);
+            if (data.clear) {
+              textarea.value = "";
+            }
+          });
+
+          textarea.addEventListener("keydown", function(event) {
+            if (event.which === 13 && event.shiftKey == false) {
+              socket.emit("input", {
+                name: username.value,
+                message: textarea.value
+              });
+
+              event.preventDefault();
+            }
+          });
+
+          changePhoto.addEventListener("click", function() {
+            socket.emit("changePhoto", {
+              name: username.value,
+              photo: photo.value
+            });
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
